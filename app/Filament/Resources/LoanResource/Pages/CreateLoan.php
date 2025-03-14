@@ -165,6 +165,7 @@ class CreateLoan extends CreateRecord
 
                 $company_name = env('APP_NAME');
                 $borrower_name = $borrower->first_name . ' ' . $borrower->last_name;
+                $borrower_full = $borrower->full_name;
                 $borrower_email = $borrower->email ?? '';
                 $borrower_phone = $borrower->mobile ?? '';
                 $borrower_address = $borrower->address;
@@ -180,6 +181,7 @@ class CreateLoan extends CreateRecord
                 $loan_interest_amount = $data['interest_amount'];
                 $loan_due_date = $data['loan_due_date'];
                 $loan_number = $data['loan_number'];
+                $repay_daily = round($loan_repayment_amount/$loan_duration);
 
                 // The original content with placeholders
                 $template_content = $loan_agreement_text->loan_agreement_text;
@@ -201,11 +203,13 @@ class CreateLoan extends CreateRecord
                 $template_content = str_replace('[Borrower Bank Name]', $borrower_bank_name, $template_content);
                 $template_content = str_replace('[Loan Number]', $loan_number, $template_content);
                 $template_content = str_replace('[Loan Release Date]', $loan_release_date, $template_content);
-                $template_content = str_replace('[Loan Amount in Words]', numberToWords($loan_amount), $template_content);
-
+                $template_content = str_replace('[Repay Daily]', $repay_daily, $template_content);
+                $template_content = str_replace('[Tab]', '&emsp;', $template_content);
 
                 $characters_to_remove = ['<br>', '&nbsp;'];
                 $template_content = str_replace($characters_to_remove, '', $template_content);
+
+
                 // Create a new PhpWord instance
                 $phpWord = new PhpWord();
 
@@ -245,7 +249,8 @@ class CreateLoan extends CreateRecord
                 if (!file_exists($path)) {
                     mkdir($path, 0777, true);
                 }
-                $file_name = Str::random(40) . '.docx';
+
+                $file_name = strtoupper(Str::of($borrower_full)->replaceMatches('/[^A-Za-z0-9]/', '_').'_'.$loan_number.'.docx');
 
                 $objWriter = IOFactory::createWriter($phpWord, 'Word2007');
                 $objWriter->save($path . '/' . $file_name);
