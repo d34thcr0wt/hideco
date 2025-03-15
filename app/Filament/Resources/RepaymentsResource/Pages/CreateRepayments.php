@@ -33,7 +33,6 @@ class CreateRepayments extends CreateRecord
                 ->persistent()
                 ->actions([Action::make('create')->button()->url(route('filament.admin.resources.loan-settlement-forms.create'), shouldOpenInNewTab: true)])
                 ->send();
-
             $this->halt();
         }
 
@@ -55,6 +54,7 @@ class CreateRepayments extends CreateRecord
             'payments' => $data['payments'],
             'balance' => $new_balance,
             'payments_method' => $data['payments_method'],
+            'payment_date' => $data['payment_date'],
             'reference_number' => $data['reference_number'] ?? 'No reference Was Entered by ' . auth()->user()->name . ' - ' . auth()->user()->email,
             'loan_number' => $loan_number,
             'principal' => $principal_amount,

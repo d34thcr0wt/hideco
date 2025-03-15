@@ -14,6 +14,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Carbon\Carbon;
 
 class RepaymentsResource extends Resource
 {
@@ -45,7 +46,6 @@ class RepaymentsResource extends Resource
             //     ->prefixIcon('heroicon-o-wallet')
             //     ->relationship('loan_number', 'loan_number')
             //     ->required(),
-            Forms\Components\TextInput::make('balance')->label('Current Balance')->prefixIcon('fas-dollar-sign')->readOnly(),
             Forms\Components\Select::make('payments_method')
                 ->label('Payment Method')
                 ->prefixIcon('fas-dollar-sign')
@@ -57,14 +57,22 @@ class RepaymentsResource extends Resource
                     'cheque' => 'Cheque',
                     'cash' => 'Cash',
                 ]),
-            Forms\Components\TextInput::make('reference_number')->label('Transaction Reference')->prefixIcon('fas-dollar-sign')->columnSpan(2),
+            Forms\Components\DatePicker::make('payment_date')->label('Payment Date')->prefixIcon('heroicon-o-calendar')->live()->required()->native(false)->maxDate(now()),
+            Forms\Components\TextInput::make('balance')->label('Current Balance')->prefixIcon('fas-dollar-sign')->readOnly(),
+            Forms\Components\TextInput::make('reference_number')->label('Transaction Reference')->prefixIcon('fas-dollar-sign'),
         ]);
     }
 
     public static function table(Table $table): Table
     {
         return $table
-            ->columns([Tables\Columns\TextColumn::make('borrower_name.full_name')->label('Borrower Name')->searchable(), Tables\Columns\TextColumn::make('loan_number.loan_number')->searchable(), Tables\Columns\TextColumn::make('reference_number')->label('Reference Number')->searchable(), Tables\Columns\TextColumn::make('created_at')->label('Payments Date')->searchable(), Tables\Columns\TextColumn::make('loan_number.loan_status')->label('Loan Status')->badge()->searchable(), Tables\Columns\TextColumn::make('payments')->searchable(), Tables\Columns\TextColumn::make('balance')->searchable()])
+            ->columns([Tables\Columns\TextColumn::make('borrower_name.full_name')->label('Borrower Name')->searchable()->sortable()
+                    , Tables\Columns\TextColumn::make('loan_number.loan_number')->searchable()->sortable()
+                    , Tables\Columns\TextColumn::make('reference_number')->label('Reference Number')->searchable()
+                    , Tables\Columns\TextColumn::make('payment_date')->label('Payments Date')->searchable()->formatStateUsing(fn ($state) => $state ? Carbon::parse($state)->format('M d, Y') : null)->sortable()
+                    , Tables\Columns\TextColumn::make('loan_number.loan_status')->label('Loan Status')->badge()->searchable()
+                    , Tables\Columns\TextColumn::make('payments')->searchable()
+                    , Tables\Columns\TextColumn::make('balance')->searchable()])
             ->filters([
                 Tables\Filters\SelectFilter::make('payments_method')->options([
                     'bank_transfer' => 'Bank Transfer',
@@ -74,6 +82,9 @@ class RepaymentsResource extends Resource
                     'cash' => 'Cash',
                 ]),
             ])
+            ->defaultSort('borrower_name.full_name', 'asc')     // ✅ Sort Borrower Name (ASC)
+            ->defaultSort('loan_number.loan_number', 'desc')    // ✅ Sort Loan Number (DESC)
+            ->defaultSort('payment_date', 'desc')               // ✅ Sort Payment Date (DESC)            
             ->actions([
                 // Tables\Actions\ViewAction::make(),
                 // Tables\Actions\EditAction::make(),
