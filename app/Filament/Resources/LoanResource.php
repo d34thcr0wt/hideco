@@ -144,7 +144,19 @@ class LoanResource extends Resource
                 Tables\Columns\TextColumn::make('balance')->label('Balance')->money('PHP')->badge()->sortable()->searchable(),
                 Tables\Columns\TextColumn::make('loan_due_date')->label('Due Date')->searchable(),
                 Tables\Columns\TextColumn::make('loan_number')->label('Loan Number')->badge()->searchable(),
-                Tables\Columns\TextColumn::make('loan_agreement_file_path')->label('Loan Agreement Form')->formatStateUsing(fn(string $state) => $create_link::goTo(env('APP_URL') . '/' . $state, 'download', 'loan agreement form')),
+                Tables\Columns\TextColumn::make('loan_agreement_file_path')
+                    ->label('Loan Agreement Form')
+                    ->formatStateUsing(fn (string $state) => 
+                        "<a href='".url('storage/' . $state)."' 
+                            download 
+                            class='inline-flex items-center px-3 py-1 bg-primary-500 text-white text-sm font-medium rounded-lg shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2'>
+                            <svg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='1.5' stroke='currentColor' class='w-5 h-5 mr-1'>
+                                <path stroke-linecap='round' stroke-linejoin='round' d='M12 3v12m0 0l-3-3m3 3l3-3m-9 9h12' />
+                            </svg>
+                            Download
+                        </a>"
+                    )
+                    ->html(),
                 Tables\Columns\TextColumn::make('loan_settlement_file_path')->label('Loan Settlement Form')->formatStateUsing(fn(string $state) => $create_link::goTo(env('APP_URL') . '/' . $state, 'download', 'loan settlement form')),
             ])
             ->filters([
