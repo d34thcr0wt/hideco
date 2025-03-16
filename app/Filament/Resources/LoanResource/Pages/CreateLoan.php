@@ -23,10 +23,28 @@ class CreateLoan extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $wallet = Wallet::findOrFail($data['from_this_account']);
+
+        $data['duration_period'] = \App\Models\LoanType::findOrFail($data['loan_type_id'])->interest_cycle;
+
+        $principle_amount = $data['principal_amount'] ?? 0;
+        $loan_duration = $data['loan_duration'] ?? 0;
+        $loan_percent = \App\Models\LoanType::findOrFail($data['loan_type_id'])->interest_rate ?? 0;
+
+        $interest_amount = ceil(($principle_amount * $loan_percent / 100) * $loan_duration);
+        $total_repayment = ceil($principle_amount + (($principle_amount * $loan_percent / 100) * $loan_duration));
+        $amortization_amount = ceil(1.0 * $total_repayment / $loan_duration);
+
+        $data['amortization_amount'] = $amortization_amount;
+        $data['repayment_amount'] = $total_repayment;
+        $data['interest_amount'] = $interest_amount;
+        $data['interest_rate'] = $loan_percent;
+
         $data['loan_number'] = IdGenerator::generate(['table' => 'loans', 'field' => 'loan_number', 'length' => 10, 'prefix' => 'LN-']);
         $data['from_this_account'] = Wallet::findOrFail($data['from_this_account'])->name;
-        $data['principal_amount'] = (float) str_replace(',', '', $data['principal_amount']);
-        $data['repayment_amount'] = (float) str_replace(',', '', $data['repayment_amount']);
+
+
+        // $data['principal_amount'] = (float) str_replace(',', '', $data['principal_amount']);
+        // $data['repayment_amount'] = (float) str_replace(',', '', $data['repayment_amount']);
 
         $data['balance'] = (float) str_replace(',', '', $data['repayment_amount']);
         $data['interest_amount'] = (float) str_replace(',', '', $data['interest_amount']);
@@ -176,10 +194,10 @@ class CreateLoan extends CreateRecord
                 $loan_interest_rate = $data['interest_rate'];
                 $loan_amount = $data['principal_amount'];
                 $loan_duration = $data['loan_duration'];
-                $loan_release_date = $data['loan_release_date'];
+                $loan_release_date = Carbon::parse($data['loan_release_date'])->format('F j, Y');
                 $loan_repayment_amount = $data['repayment_amount'];
                 $loan_interest_amount = $data['interest_amount'];
-                $loan_due_date = $data['loan_due_date'];
+                $loan_due_date = Carbon::parse($data['loan_due_date'])->format('F j, Y');
                 $loan_number = $data['loan_number'];
                 $repay_daily = round($loan_repayment_amount/$loan_duration);
 

@@ -30,15 +30,14 @@ class LoanTypeResource extends Resource
     {
         return $form->schema([
             Forms\Components\TextInput::make('loan_name')->label('Loan Name')->prefixIcon('fas-dollar-sign')->required()->maxLength(255)->mutateDehydratedStateUsing(fn($state) => strtolower($state)),
-            Forms\Components\TextInput::make('interest_rate')->label('Interest Rate')->prefixIcon('fas-percentage')->required()->numeric()->inputMode('decimal')->step(0.1)->maxValue(100)->minValue(0)->mutateDehydratedStateUsing(fn($state) => number_format((float) $state, 5, '.', '')),
+            Forms\Components\TextInput::make('interest_rate')->label('Interest Rate')->prefixIcon('fas-percentage')->required()->numeric()->inputMode('decimal')->step(0.00001)->maxValue(100)->minValue(0)->mutateDehydratedStateUsing(fn($state) => number_format((float) $state, 5, '.', '')),
             Forms\Components\Select::make('interest_cycle')
                 ->label('Interest Cycle')
                 ->prefixIcon('fas-sync-alt')
                 ->options([
                     'day(s)' => 'Daily',
                     'week(s)' => 'Weekly',
-                    'month(s)' => 'Monthly',
-                    'year(s)' => 'Yearly',
+                    'month(s)' => 'Monthly'
                 ])
                 ->required(),
         ]);
@@ -48,13 +47,14 @@ class LoanTypeResource extends Resource
     {
         return $table
 
-            ->columns([Tables\Columns\TextColumn::make('loan_name')->searchable(), Tables\Columns\TextColumn::make('interest_rate')->label('Interest Rate (%)')->badge()->searchable()->formatStateUsing(fn($state) => number_format((float) $state, 2, '.', '')), Tables\Columns\TextColumn::make('interest_cycle')->badge()->searchable()])
+            ->columns([Tables\Columns\TextColumn::make('loan_name')->searchable()
+                , Tables\Columns\TextColumn::make('interest_rate')->label('Interest Rate (%)')->badge()->searchable()->formatStateUsing(fn($state) => number_format((float) $state, 5, '.', ''))
+                , Tables\Columns\TextColumn::make('interest_cycle')->badge()->searchable()])
             ->filters([
                 Tables\Filters\SelectFilter::make('interest_cycle')->options([
                     'day(s)' => 'Daily',
                     'week(s)' => 'Weekly',
-                    'month(s)' => 'Monthly',
-                    'year(s)' => 'Yearly',
+                    'month(s)' => 'Monthly'
                 ]),
             ])
             ->actions([Tables\Actions\ViewAction::make(), Tables\Actions\EditAction::make()])

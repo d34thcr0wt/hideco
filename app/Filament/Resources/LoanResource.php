@@ -19,6 +19,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Haruncpi\LaravelIdGenerator\IdGenerator;
 
 class LoanResource extends Resource
 {
@@ -46,7 +47,6 @@ class LoanResource extends Resource
                 ->label('Loan Status')
                 ->prefixIcon('fas-dollar-sign')
                 ->options([
-                    'requested' => 'Requested',
                     'processing' => 'Processing',
                     'approved' => 'Approved',
                     'denied' => 'Denied',
@@ -57,62 +57,61 @@ class LoanResource extends Resource
             Forms\Components\TextInput::make('principal_amount')
                 ->label('Principle Amount')
                 ->prefixIcon('fas-dollar-sign')
-                ->live()
-                ->required(function ($state, Set $set, Get $get) {
-                    if ($get('loan_type_id')) {
-                        $duration = $get('loan_duration') ?? 0;
-                        $principle_amount = $state ?? 0;
-                        $loan_percent = \App\Models\LoanType::findOrFail($get('loan_type_id'))->interest_rate ?? 0;
-                        $interest_amount = $principle_amount * ($loan_percent / 100) * $duration;
-                        $total_repayment = $principle_amount + $principle_amount * ($loan_percent / 100) * $duration;
-                        $set('repayment_amount', number_format($total_repayment));
-                        $set('interest_amount', number_format($interest_amount));
-                        $set('interest_rate', $loan_percent);
-                    }
-                    return true;
-                })
+                ->required()
                 ->numeric(),
             Forms\Components\Select::make('loan_type_id')
                 ->prefixIcon('heroicon-o-wallet')
                 ->relationship('loan_type', 'loan_name')
                 ->searchable()
                 ->preload()
-                ->live()
-                ->required(function ($state, Set $set) {
-                    if ($state) {
-                        $interest_cycle = \App\Models\LoanType::findOrFail($state)->interest_cycle;
-                        $set('duration_period', $interest_cycle);
-                    }
-                    return true;
-                }),
+                ->required(),
             Forms\Components\TextInput::make('loan_duration')
                 ->label('Loan Duration')
                 ->prefixIcon('fas-clock')
-                ->live()
-                ->required(function ($state, Set $set, Get $get) {
-                    if ($state && $get('loan_type_id') && $get('principal_amount')) {
-                        $duration = $state ?? 0;
-                        $principle_amount = $get('principal_amount');
-                        $loan_percent = \App\Models\LoanType::findOrFail($get('loan_type_id'))->interest_rate ?? 0;
-                        $interest_amount = $principle_amount * ($loan_percent / 100) * $duration;
-                        $total_repayment = $principle_amount + $principle_amount * ($loan_percent / 100) * $duration;
-                        $set('repayment_amount', number_format($total_repayment));
-                        $set('interest_amount', number_format($interest_amount));
-                        $set('interest_rate', $loan_percent);
-                    }
-                    return true;
-                })
+                ->required()
                 ->numeric(),
-            Forms\Components\TextInput::make('duration_period')->label('Duration Period')->prefixIcon('fas-clock')->required()->readOnly(),
-            Forms\Components\DatePicker::make('loan_release_date')->label('Loan Release Date')->prefixIcon('heroicon-o-calendar')->live()->required()->native(false)->maxDate(now()),
-            Forms\Components\TextInput::make('repayment_amount')->label('Repayment Amount')->prefixIcon('fas-coins')->required(),
-            // ->readOnly()
-            Forms\Components\TextInput::make('interest_amount')->label('Interest Amount')->prefixIcon('fas-coins')// ->readOnly()
-            ->required(),
-            Forms\Components\TextInput::make('interest_rate')->label('Interest Rate')->required()->prefixIcon('fas-percentage')// ->readOnly()
-            ->numeric(),
-            Forms\Components\DatePicker::make('loan_due_date')->label('Loan Due Date')->prefixIcon('heroicon-o-calendar')->hidden()->required()->native(false),
-            Forms\Components\Toggle::make('activate_loan_agreement_form')->label('Compile Loan Agreement Form')->helperText('If you want to compile the loan agreement for this applicant make sure you have added the loan loan agreement form template for this type of loan.')->onColor('success')->offColor('danger'),
+            Forms\Components\TextInput::make('duration_period')
+                ->label('Duration Period')
+                ->prefixIcon('fas-clock')
+                ->required()
+                ->hidden()
+                ->readOnly(),
+            Forms\Components\DatePicker::make('loan_release_date')
+                ->label('Loan Release Date')
+                ->prefixIcon('heroicon-o-calendar')
+                ->required()
+                ->native(false)->maxDate(now()),
+            Forms\Components\TextInput::make('repayment_amount')
+                ->label('Repayment Amount')
+                ->prefixIcon('fas-coins')
+                ->readOnly()
+                ->numeric(),
+            Forms\Components\TextInput::make('interest_amount')
+                ->label('Interest Amount')
+                ->prefixIcon('fas-coins')
+                ->numeric()
+                ->readOnly(),
+            Forms\Components\TextInput::make('interest_rate')
+                ->label('Interest Rate')
+                ->prefixIcon('fas-percentage')
+                ->hidden()
+                ->numeric(),
+            Forms\Components\TextInput::make('amortization_amount')
+                ->label('Amortization Amount')
+                ->prefixIcon('fas-dollar-sign')
+                ->numeric()
+                ->readOnly(),
+            Forms\Components\DatePicker::make('loan_due_date')
+                ->label('Loan Due Date')
+                ->prefixIcon('heroicon-o-calendar')
+                ->hidden()
+                ->native(false),
+            Forms\Components\Toggle::make('activate_loan_agreement_form')
+                ->label('Compile Loan Agreement Form')
+                ->hidden()
+                ->helperText('If you want to compile the loan agreement for this applicant make sure you have added the loan loan agreement form template for this type of loan.')
+                ->onColor('success')
+                ->offColor('danger'),
             Forms\Components\TextInput::make('loan_agreement_file_path')->hidden(),
             Forms\Components\TextInput::make('balance')->hidden(),
         ]);
@@ -147,7 +146,7 @@ class LoanResource extends Resource
                 Tables\Columns\TextColumn::make('loan_agreement_file_path')
                     ->label('Loan Agreement Form')
                     ->formatStateUsing(fn (string $state) => 
-                        "<a href='".url('storage/' . $state)."' 
+                        "<a href='".url($state)."' 
                             download 
                             class='inline-flex items-center px-3 py-1 bg-primary-500 text-white text-sm font-medium rounded-lg shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2'>
                             <svg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='1.5' stroke='currentColor' class='w-5 h-5 mr-1'>

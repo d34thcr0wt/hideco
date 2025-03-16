@@ -36,9 +36,6 @@ class ListLoans extends ListRecords
        'Failed' => Tab::make('Failed')
        ->icon('heroicon-m-home')
        ->modifyQueryUsing(fn (Builder $query) => $query->where('loan_status', 'denied')),
-      
-      
-   
         ];
         
     

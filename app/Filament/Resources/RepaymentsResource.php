@@ -30,7 +30,7 @@ class RepaymentsResource extends Resource
     public static function form(Form $form): Form
     {
         return $form->schema([
-            Forms\Components\Select::make('borrow_id')
+            Forms\Components\Select::make('borrower_id')
                 ->label('Borrower')
                 ->prefixIcon('heroicon-o-wallet')
                 ->relationship('borrower_name', 'full_name', function ($query) {
@@ -41,11 +41,6 @@ class RepaymentsResource extends Resource
                 ->live(onBlur: true)
                 ->required(),
             Forms\Components\TextInput::make('payments')->label('Repayment Amount')->prefixIcon('fas-dollar-sign')->required(),
-            // Forms\Components\Select::make('loan_id')
-            //     ->label('Loan Number')
-            //     ->prefixIcon('heroicon-o-wallet')
-            //     ->relationship('loan_number', 'loan_number')
-            //     ->required(),
             Forms\Components\Select::make('payments_method')
                 ->label('Payment Method')
                 ->prefixIcon('fas-dollar-sign')
@@ -53,11 +48,10 @@ class RepaymentsResource extends Resource
                 ->options([
                     'bank_transfer' => 'Bank Transfer',
                     'mobile_money' => 'Mobile Money',
-                    'pemic' => 'PEMIC',
                     'cheque' => 'Cheque',
                     'cash' => 'Cash',
                 ]),
-            Forms\Components\DatePicker::make('payment_date')->label('Payment Date')->prefixIcon('heroicon-o-calendar')->live()->required()->native(false)->maxDate(now()),
+            Forms\Components\DatePicker::make('payment_date')->label('Payment Date')->prefixIcon('heroicon-o-calendar')->live()->native(false)->maxDate(now()),
             Forms\Components\TextInput::make('balance')->label('Current Balance')->prefixIcon('fas-dollar-sign')->readOnly(),
             Forms\Components\TextInput::make('reference_number')->label('Transaction Reference')->prefixIcon('fas-dollar-sign'),
         ]);
