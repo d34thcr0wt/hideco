@@ -29,5 +29,5 @@ class Repayments extends Model
      *
      * @var array<int, string>
      */
-    protected $fillable = ['loan_id', 'borrow_id'];
+    protected $fillable = ['loan_id'];
 }

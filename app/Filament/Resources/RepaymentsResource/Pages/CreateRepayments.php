@@ -36,7 +36,7 @@ class CreateRepayments extends CreateRecord
             $this->halt();
         }
 
-        $loan = Loan::where('borrower_id', $data['borrow_id'])
+        $loan = Loan::where('borrower_id', $data['borrower_id'])
                         ->where('balance', '>', 0)
                         ->oldest()
                         ->firstOrFail();
@@ -133,4 +133,5 @@ class CreateRepayments extends CreateRecord
     {
         return $this->getResource()::getUrl('index');
     }
+
 }
