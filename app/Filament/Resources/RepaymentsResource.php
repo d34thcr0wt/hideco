@@ -15,6 +15,8 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Carbon\Carbon;
+use Filament\Notifications\Notification;
+
 
 class RepaymentsResource extends Resource
 {
@@ -39,8 +41,22 @@ class RepaymentsResource extends Resource
                 ->searchable()
                 ->preload()
                 ->live(onBlur: true)
-                ->required(),
-            Forms\Components\TextInput::make('payments')->label('Repayment Amount')->prefixIcon('fas-dollar-sign')->required(),
+                // ->required(),
+                ->required(function ($state, Set $set) {
+                    if ($state) {          
+                        $loan = \App\Models\Loan::where('borrower_id', (int) $state)
+                                    ->where('balance', '>', 0)
+                                    ->whereIn('loan_status', ['processing', 'approved', 'partially_paid'])
+                                    ->orderBy('loan_number', 'asc')
+                                    ->first();
+                        $set('payment_date', now()->format('Y-m-d'));
+                        $set('loan_number', $loan->loan_number);
+                        $set('balance', $loan->balance);
+                    }
+                    return true;
+                }),
+            Forms\Components\DatePicker::make('payment_date')->label('Payment Date')->prefixIcon('heroicon-o-calendar')->live()->native(false)->maxDate(now()),
+            Forms\Components\TextInput::make('payments')->label('Payment Amount')->prefixIcon('fas-dollar-sign')->required(),
             Forms\Components\Select::make('payments_method')
                 ->label('Payment Method')
                 ->prefixIcon('fas-dollar-sign')
@@ -51,9 +67,9 @@ class RepaymentsResource extends Resource
                     'cheque' => 'Cheque',
                     'cash' => 'Cash',
                 ]),
-            Forms\Components\DatePicker::make('payment_date')->label('Payment Date')->prefixIcon('heroicon-o-calendar')->live()->native(false)->maxDate(now()),
-            Forms\Components\TextInput::make('balance')->label('Current Balance')->prefixIcon('fas-dollar-sign')->readOnly(),
             Forms\Components\TextInput::make('reference_number')->label('Transaction Reference')->prefixIcon('fas-dollar-sign'),
+            Forms\Components\TextInput::make('balance')->label('Current Balance')->prefixIcon('fas-dollar-sign')->disabled()->readOnly()->extraAttributes(['class' => 'bg-red-200 text-red-700 cursor-not-allowed']),
+            Forms\Components\TextInput::make('loan_number')->label('Loan number')->prefixIcon('fas-coins')->disabled()->readOnly()->extraAttributes(['class' => 'bg-red-200 text-red-700 cursor-not-allowed']),
         ]);
     }
 
@@ -78,7 +94,7 @@ class RepaymentsResource extends Resource
             ])
             ->defaultSort('borrower_name.full_name', 'asc')     // ✅ Sort Borrower Name (ASC)
             ->defaultSort('loan_number.loan_number', 'desc')    // ✅ Sort Loan Number (DESC)
-            ->defaultSort('payment_date', 'desc')               // ✅ Sort Payment Date (DESC)            
+            ->defaultSort('balance', 'asc')               // ✅ Sort Payment Date (DESC)            
             ->actions([
                 // Tables\Actions\ViewAction::make(),
                 // Tables\Actions\EditAction::make(),

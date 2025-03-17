@@ -33,5 +33,5 @@ class Loan extends Model
      *
      * @var array<int, string>
      */
-    protected $fillable = ['balance', 'loan_status'];
+    protected $fillable = ['balance', 'loan_status', 'loan_number'];
 }
