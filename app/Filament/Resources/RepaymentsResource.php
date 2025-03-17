@@ -52,6 +52,7 @@ class RepaymentsResource extends Resource
                         $set('payment_date', now()->format('Y-m-d'));
                         $set('loan_number', $loan->loan_number);
                         $set('balance', $loan->balance);
+                        $set('amortization_amount', $loan->amortization_amount);
                     }
                     return true;
                 }),
@@ -70,6 +71,7 @@ class RepaymentsResource extends Resource
             Forms\Components\TextInput::make('reference_number')->label('Transaction Reference')->prefixIcon('fas-dollar-sign'),
             Forms\Components\TextInput::make('balance')->label('Current Balance')->prefixIcon('fas-dollar-sign')->disabled()->readOnly()->extraAttributes(['class' => 'bg-red-200 text-red-700 cursor-not-allowed']),
             Forms\Components\TextInput::make('loan_number')->label('Loan number')->prefixIcon('fas-coins')->disabled()->readOnly()->extraAttributes(['class' => 'bg-red-200 text-red-700 cursor-not-allowed']),
+            Forms\Components\TextInput::make('amortization_amount')->label('Amortization amount')->prefixIcon('fas-coins')->disabled()->readOnly()->extraAttributes(['class' => 'bg-red-200 text-red-700 cursor-not-allowed']),
         ]);
     }
 
