@@ -17,10 +17,9 @@ class LoanTypeResource extends Resource
 {
     protected static ?string $model = LoanType::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-currency-dollar';
-
+    protected static ?string $navigationIcon = 'heroicon-s-currency-dollar';
     protected static ?string $navigationGroup = 'Loan Agreement Forms';
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 6;
 
     public static function getNavigationBadge(): ?string
     {
@@ -35,9 +34,10 @@ class LoanTypeResource extends Resource
                 ->label('Interest Cycle')
                 ->prefixIcon('fas-sync-alt')
                 ->options([
-                    'day(s)' => 'Daily',
-                    'week(s)' => 'Weekly',
-                    'month(s)' => 'Monthly'
+                    'day' => 'Daily',
+                    'week' => 'Weekly',
+                    'month' => 'Monthly',
+                    'custom' => 'Custom'
                 ])
                 ->required(),
         ]);

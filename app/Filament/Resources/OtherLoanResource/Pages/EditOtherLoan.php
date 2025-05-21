@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Filament\Resources\LoanResource\Pages;
+namespace App\Filament\Resources\OtherLoanResource\Pages;
 
 use App\Models\ThirdParty;
 use Illuminate\Support\Facades\Http;
-use App\Filament\Resources\LoanResource;
+use App\Filament\Resources\OtherLoanResource;
 use Haruncpi\LaravelIdGenerator\IdGenerator;
 use Bavix\Wallet\Models\Wallet;
 use Filament\Actions;
@@ -18,10 +18,12 @@ use PhpOffice\PhpWord\IOFactory;
 use PhpOffice\PhpWord\PhpWord;
 use Carbon\Carbon;
 use App\Notifications\LoanStatusNotification;
+use App\Models\Inventory;
+use App\Models\Loan;
 
-class EditLoan extends EditRecord
+class EditOtherLoan extends EditRecord
 {
-    protected static string $resource = LoanResource::class;
+    protected static string $resource = OtherLoanResource::class;
 
     protected function getHeaderActions(): array
     {
@@ -30,12 +32,81 @@ class EditLoan extends EditRecord
 
     protected function handleRecordUpdate(Model $record, array $data): Model
     {
-        $wallet = Wallet::where('name', '=', $data['from_this_account'])->first();
-        
-        $loan = \App\Models\Loan::where('borrower_id', '=', $data['borrower_id'])
-            ->whereNotIn('loan_status', ['fully_paid', 'approved', 'partially_paid']) // Exclude fully_paid, partially_paid and approved
-            ->where('balance', '>', 0) // Only include loans with balance > 0        
-            ->first();
+        // Retrieve the original loan data before the update
+        $originalLoan = Loan::find($record->id);
+
+        $originalQuantity = $originalLoan->quantity;
+        $newQuantity = $data['quantity'];
+        $inventoryId = $data['inventory_id'];
+        $data['loan_status'] = $data['loan_status'] ?? 'approved';
+
+        // Calculate the change in quantity
+        $quantityChange = $originalQuantity - $newQuantity; // This is the amount to add back to inventory if positive, or subtract less if negative
+
+        // Find the associated inventory item
+        $inventoryItem = Inventory::find($inventoryId);
+
+        if ($inventoryItem) {
+            // Calculate the potential new inventory quantity
+            $potentialNewInventoryQuantity = $inventoryItem->quantity + $quantityChange;
+
+            // Check if the potential new quantity is negative
+            if ($potentialNewInventoryQuantity < 0) {
+                // Prevent the update and show an error notification
+                Notification::make()
+                    ->danger()
+                    ->title('Inventory Error')
+                    ->body('Cannot reduce inventory quantity below zero.')
+                    ->send();
+
+                // Return the original record to prevent saving the changes
+                return $record;
+            }
+
+            // Update the inventory quantity
+            $inventoryItem->quantity = $potentialNewInventoryQuantity;
+            $inventoryItem->save();
+        }
+
+        // Add the existing loan_type_id to $data if it's not present (because the field is hidden)
+        if (!isset($data['loan_type_id'])) {
+            $data['loan_type_id'] = $record->loan_type_id;
+        }
+
+        // --- Wallet Adjustment Logic based on Principal Amount Change ---
+        $originalPrincipalAmount = $originalLoan->principal_amount;
+        $newPrincipalAmount = $data['principal_amount'] ?? 0; // Use 0 if not set, though it should be by loan type calculation
+
+        $principalAmountChange = $newPrincipalAmount - $originalPrincipalAmount; // Positive if new amount is higher, negative if lower
+
+        // Add logging to inspect values
+        \Log::info('Wallet Adjustment Debug:', [
+            'originalPrincipalAmount' => $originalPrincipalAmount,
+            'newPrincipalAmount' => $newPrincipalAmount,
+            'principalAmountChange' => $principalAmountChange,
+            'loan_number' => $record->loan_number,
+            'wallet_name_from_data' => $data['from_this_account'],
+        ]);
+
+        $wallet = Wallet::findOrFail($data['from_this_account']);
+
+        if ($wallet) {
+            if ($principalAmountChange > 0) {
+                // If principal amount increased, withdraw the difference
+                $wallet->withdraw($principalAmountChange, ['meta' => 'Additional loan amount disbursed due to quantity change for loan ' . $record->loan_number]);
+            } elseif ($principalAmountChange < 0) {
+                // If principal amount decreased, deposit the absolute value of the difference
+                $wallet->deposit(abs($principalAmountChange), ['meta' => 'Loan amount returned to wallet due to quantity change for loan ' . $record->loan_number]);
+            }
+        } else {
+            // Optional: Add a notification if the wallet is not found
+            Notification::make()
+                ->warning()
+                ->title('Wallet Not Found')
+                ->body('The specified wallet for this loan could not be found.')
+                ->send();
+        }
+        // --- End Wallet Adjustment Logic ---
 
         $principle_amount = $data['principal_amount'] ?? 0;
         $loan_duration = $data['loan_duration'] ?? 0;
@@ -52,7 +123,16 @@ class EditLoan extends EditRecord
         $data['balance'] = $total_repayment;
 
         if ($data['loan_status'] === 'approved') {
-            $wallet->withdraw($data['principal_amount'], ['meta' => 'Loan amount disbursed from ' . $data['from_this_account']]);
+            // if ($wallet) {
+            //     $wallet->withdraw($data['principal_amount'], ['meta' => 'Loan amount disbursed from ' . $data['from_this_account']]);
+            // } else {
+            //     // Optional: Add a notification if the wallet is not found for this disbursement
+            //     Notification::make()
+            //         ->warning()
+            //         ->title('Wallet Not Found for Disbursement')
+            //         ->body('The specified wallet for initial disbursement could not be found.')
+            //         ->send();
+            // }
 
             //Check if they have the Loan Agreement Form template for this type of loan
             $loan_agreement_text = \App\Models\LoanAgreementForms::where('loan_type_id', '=', $data['loan_type_id'])->first();
@@ -64,17 +144,11 @@ class EditLoan extends EditRecord
             $loan_release_date = $data['loan_release_date'];
             $loan_date = Carbon::createFromFormat('Y-m-d', $loan_release_date);
     
-            if ($loan_cycle === 'day(s)') {
-                $data['loan_due_date'] = $loan_date->addDays($loan_duration);
-            }
-            if ($loan_cycle === 'week(s)') {
-                $data['loan_due_date'] = $loan_date->addWeeks($loan_duration);
-            }
-            if ($loan_cycle === 'month(s)') {
-                $data['loan_due_date'] = $loan_date->addMonths($loan_duration);
-            }
-            if ($loan_cycle === 'year(s)') {
-                $data['loan_due_date'] = $loan_date->addYears($loan_duration);
+            switch ($loan_cycle) {
+                case 'day': $data['loan_due_date'] = $loan_date->addDays($loan_duration); break;
+                case 'week': $data['loan_due_date'] = $loan_date->addWeeks($loan_duration); break;
+                case 'month': $data['loan_due_date'] = $loan_date->addMonths($loan_duration); break;
+                default: $data['loan_due_date'] = $loan_date->addWeeks($loan_duration); break;
             }
 
             $company_name = env('APP_NAME');
@@ -94,7 +168,7 @@ class EditLoan extends EditRecord
             $loan_repayment_amount = $data['repayment_amount'];
             $loan_interest_amount = $data['interest_amount'];
             $loan_due_date = Carbon::parse($data['loan_due_date'])->format('F j, Y');
-            $loan_number = $loan->loan_number;
+            $loan_number = $record->loan_number;
             $repay_daily = round($loan_repayment_amount/$loan_duration);
 
             // The original content with placeholders

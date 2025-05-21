@@ -1,79 +1,93 @@
 <?php
 
-namespace App\Filament\Resources\RepaymentsResource\Pages;
+namespace App\Filament\Resources\OtherLoanRepaymentsResource\Pages;
 
-use Illuminate\Support\Facades\Log;
+use App\Filament\Resources\OtherLoanRepaymentsResource;
+use Filament\Resources\Pages\CreateRecord;
+use App\Models\Inventory;
+use App\Models\LoanType;
+use App\Models\ThirdParty;
+use App\Models\Borrower;
+use App\Models\LoanAgreementForms;
+use App\Notifications\LoanStatusNotification;
 use Filament\Notifications\Notification;
 use Filament\Notifications\Actions\Action;
-use Illuminate\Database\Eloquent\Model;
 use Bavix\Wallet\Models\Wallet;
-use App\Models\Expense;
-use App\Filament\Resources\RepaymentsResource;
-use App\Models\Repayments;
+// Add this line temporarily:
+// dd(Wallet::class);
+use Haruncpi\LaravelIdGenerator\IdGenerator;
+use Illuminate\Support\Facades\Http;
+use Carbon\Carbon;
 use Illuminate\Support\Str;
-use Filament\Actions;
-use Filament\Resources\Pages\CreateRecord;
-use PhpOffice\PhpWord\IOFactory;
+use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpWord\PhpWord;
+use PhpOffice\PhpWord\IOFactory;
+use PhpOffice\PhpWord\Shared\Html;
 use App\Models\Loan;
+use App\Models\Repayments;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Database\Eloquent\Model;
 
-class CreateRepayments extends CreateRecord
+class CreateOtherLoanRepayments extends CreateRecord
 {
-    protected static string $resource = RepaymentsResource::class;
+    protected static string $resource = OtherLoanRepaymentsResource::class;
 
     protected function handleRecordCreation(array $data): Model
     {
         //Check if they have created the Loan settlement Form template
         $template_content = \App\Models\LoanSettlementForms::latest()->first();
         if (!$template_content) {
-            Notification::make()
+             Notification::make()
                 ->warning()
                 ->title('Invalid Settlement Form!')
                 ->body('Please create a loan settlement form first')
-                ->persistent()
+                 ->persistent()
                 ->actions([Action::make('create')->button()->url(route('filament.admin.resources.loan-settlement-forms.create'), shouldOpenInNewTab: true)])
-                ->send();
-            $this->halt();
+                 ->send();
+        }
+
+        $inventory = Inventory::findOrFail($data['inventory_id']);
+        $loan = Loan::where('borrower_id', $data['borrower_id'])
+            ->where('inventory_id', $data['inventory_id'])
+            ->oldest()
+            ->firstOrFail();
+
+        $wallet = Wallet::findOrFail($loan['from_this_account']);
+
+        if (!$wallet) {
+                 Notification::make()
+                    ->danger()
+                ->title('Wallet Not Found')
+                ->body('The wallet associated with this loan could not be found. Please check the loan\'s "From this Account" setting.')
+                    ->persistent()
+                    ->send();
         }
 
         $loan = Loan::where('borrower_id', $data['borrower_id'])
+                        ->where('inventory_id', $data['inventory_id'])
                         ->where('balance', '>', 0)
                         ->oldest()
                         ->firstOrFail();
-
-        // Log::info('Loan Details: ' . $loan);
-        $wallet = Wallet::findOrFail($loan['from_this_account'])->first();
-        // Log::info('Wallet Details: ' . $wallet);
-
-        // Add a check to ensure the wallet was found
-        if (!$wallet) {
-            Notification::make()
-                ->danger()
-                ->title('Wallet Not Found')
-                ->body('The wallet associated with this loan could not be found. Please check the loan\'s "From this Account" setting.')
-                ->persistent()
-                ->send();
-            $this->halt(); // Stop the record creation process
-        }
 
         $principal_amount = $loan->principal_amount;
         $loan_number = $loan->loan_number;
         $old_balance = (float) $loan->balance;
         $new_balance = $old_balance - ((float) $data['payments']);
 
-        $repayment = Repayments::create([
+        $repayment = \App\Models\Repayments::create([
             'loan_id' => $loan->id,
             'payments' => $data['payments'],
             'balance' => $new_balance,
             'payments_method' => $data['payments_method'],
             'payment_date' => $data['payment_date'],
-            'reference_number' => $data['reference_number'] ?? 'No reference ['.auth()->user()->email.']',
+            'reference_number' => $data['reference_number'] ?? 'No reference ['.auth()->user()->name.']',
             'loan_number' => $loan_number,
             'principal' => $principal_amount,
         ]);
 
-        // Deposit into the wallet (this line will now only be reached if $wallet is not null)
-        $wallet->deposit($data['payments'], ['meta' => 'Loan repayment amount']);
+        if ($wallet) {
+             $wallet->deposit($data['payments'], ['meta' => 'Loan repayment amount']);
+        }
 
         if ($new_balance <= 0) {
             $data['loan_settlement_file_path'] = $this->settlement_form($loan);
@@ -93,6 +107,7 @@ class CreateRepayments extends CreateRecord
 
         return $repayment;
     }
+
 
     protected function settlement_form($loan)
     {
@@ -146,5 +161,4 @@ class CreateRepayments extends CreateRecord
     {
         return $this->getResource()::getUrl('index');
     }
-
 }

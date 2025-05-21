@@ -19,7 +19,8 @@ class ExpenseCategoryResource extends Resource
 
     protected static ?string $navigationGroup = 'Expenses';
     protected static ?string $navigationIcon = 'fas-dollar-sign'; 
-    protected static ?int $navigationSort = 4;
+    protected static ?int $navigationSort = 5;
+    
     public static function getNavigationBadge(): ?string
     {
         return static::getModel()::count();

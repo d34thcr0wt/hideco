@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Inventory extends Model
 {
@@ -80,5 +81,11 @@ class Inventory extends Model
             return $this->selling_price - ($this->downpayment ?? 0);
         }
         return $this->selling_price;
+    }
+
+    // Relationships
+    public function loans(): HasMany
+    {
+        return $this->hasMany(\App\Models\Loan::class, 'inventory_id');
     }
 } 

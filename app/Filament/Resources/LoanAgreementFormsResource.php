@@ -20,7 +20,7 @@ class LoanAgreementFormsResource extends Resource
 
     protected static ?string $navigationIcon = 'fas-file';
     protected static ?string $navigationGroup = 'Loan Agreement Forms';
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 6;
 
     public static function getNavigationBadge(): ?string
     {

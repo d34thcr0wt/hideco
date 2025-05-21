@@ -23,10 +23,15 @@ class RepaymentsResource extends Resource
     protected static ?string $model = Repayments::class;
 
     protected static ?string $navigationGroup = 'Repayments';
-    protected static ?string $navigationIcon = 'fas-dollar-sign';
+    protected static ?int $navigationSort = 3;
+
+    protected static ?string $navigationIcon = 'heroicon-s-currency-dollar';
+
     public static function getNavigationBadge(): ?string
     {
-        return static::getModel()::count();
+        $count = static::getModel()::whereHas('loan_number', fn (Builder $query) => $query->where('inventory_id', 0))->count();
+
+        return $count > 0 ? (string) $count : null;
     }
 
     public static function form(Form $form): Form
@@ -57,7 +62,21 @@ class RepaymentsResource extends Resource
                     return true;
                 }),
             Forms\Components\DatePicker::make('payment_date')->label('Payment Date')->prefixIcon('heroicon-o-calendar')->live()->native(false)->maxDate(now()),
-            Forms\Components\TextInput::make('payments')->label('Payment Amount')->prefixIcon('fas-dollar-sign')->required(),
+            Forms\Components\TextInput::make('payments')
+                ->label('Payment Amount')
+                ->prefixIcon('fas-dollar-sign')
+                ->required()
+                ->rules([
+                    function (Forms\Get $get) {
+                        return function (string $attribute, $value, \Closure $fail) use ($get) {
+                            $currentBalance = (float) str_replace(',', '', $get('balance')); // Get the current balance, remove commas
+
+                            if ($currentBalance !== null && (float) $value > $currentBalance) {
+                                $fail("The payment amount cannot be greater than the current balance ({$get('balance')}).");
+                            }
+                        };
+                    },
+                ]),
             Forms\Components\Select::make('payments_method')
                 ->label('Payment Method')
                 ->prefixIcon('fas-dollar-sign')
@@ -67,11 +86,12 @@ class RepaymentsResource extends Resource
                     'mobile_money' => 'Mobile Money',
                     'cheque' => 'Cheque',
                     'cash' => 'Cash',
-                ]),
+                ])
+                ->default('cash'),
             Forms\Components\TextInput::make('reference_number')->label('Transaction Reference')->prefixIcon('fas-dollar-sign'),
-            Forms\Components\TextInput::make('balance')->label('Current Balance')->prefixIcon('fas-dollar-sign')->disabled()->readOnly()->extraAttributes(['class' => 'bg-red-200 text-red-700 cursor-not-allowed']),
-            Forms\Components\TextInput::make('loan_number')->label('Loan number')->prefixIcon('fas-coins')->disabled()->readOnly()->extraAttributes(['class' => 'bg-red-200 text-red-700 cursor-not-allowed']),
-            Forms\Components\TextInput::make('amortization_amount')->label('Amortization amount')->prefixIcon('fas-coins')->disabled()->readOnly()->extraAttributes(['class' => 'bg-red-200 text-red-700 cursor-not-allowed']),
+            Forms\Components\TextInput::make('balance')->label('Current Balance')->prefixIcon('fas-dollar-sign')->disabled()->readOnly()->extraAttributes(['style' => 'background-color: #f0f0f0;']),
+            Forms\Components\TextInput::make('loan_number')->label('Loan number')->prefixIcon('fas-coins')->disabled()->readOnly()->extraAttributes(['style' => 'background-color: #f0f0f0;']),
+            Forms\Components\TextInput::make('amortization_amount')->label('Amortization amount')->prefixIcon('fas-coins')->disabled()->readOnly()->extraAttributes(['style' => 'background-color: #f0f0f0;']),
         ]);
     }
 
@@ -86,13 +106,10 @@ class RepaymentsResource extends Resource
                     , Tables\Columns\TextColumn::make('payments')->searchable()
                     , Tables\Columns\TextColumn::make('balance')->searchable()])
             ->filters([
-                Tables\Filters\SelectFilter::make('payments_method')->options([
-                    'bank_transfer' => 'Bank Transfer',
-                    'mobile_money' => 'Mobile Money',
-                    'pemic' => 'PEMIC',
-                    'cheque' => 'Cheque',
-                    'cash' => 'Cash',
-                ]),
+                Tables\Filters\Filter::make('inventory_loans')
+                    ->query(fn (Builder $query): Builder => $query->whereHas('loan_number', fn (Builder $query) => $query->where('inventory_id', 0)))
+                    ->label('Money Loans')
+                    ->default(),
             ])
             ->defaultSort('borrower_name.full_name', 'asc')     // ✅ Sort Borrower Name (ASC)
             ->defaultSort('loan_number.loan_number', 'desc')    // ✅ Sort Loan Number (DESC)

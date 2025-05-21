@@ -19,8 +19,8 @@ class LoanSettlementFormsResource extends Resource
     protected static ?string $model = LoanSettlementForms::class;
 
     protected static ?string $navigationIcon = 'fas-copy';
-       protected static ?string $navigationGroup = 'Loan Agreement Forms';
-    protected static ?int $navigationSort = 2; 
+    protected static ?string $navigationGroup = 'Loan Agreement Forms';
+    protected static ?int $navigationSort = 6;
     
     
 
