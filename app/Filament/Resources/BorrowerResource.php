@@ -25,10 +25,10 @@ class BorrowerResource extends Resource
 {
     protected static ?string $model = Borrower::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-users';
+    protected static ?string $navigationIcon = 'heroicon-s-users';
     protected static ?string $navigationLabel = 'Borrowers';
-
     protected static ?string $navigationGroup = 'Customers';
+    protected static ?int $navigationSort = 1;
 
     //     public static function infolist(Infolist $infolist): Infolist
     //     {

@@ -3,10 +3,10 @@
 namespace App\Policies;
 
 use App\Models\User;
-use App\Models\Loan;
+use App\Models\Inventory;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
-class LoanPolicy
+class InventoryPolicy
 {
     use HandlesAuthorization;
 
@@ -15,15 +15,15 @@ class LoanPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->can('view_any_other::loan');
+        return $user->can('view_any_inventory');
     }
 
     /**
      * Determine whether the user can view the model.
      */
-    public function view(User $user, Loan $loan): bool
+    public function view(User $user, Inventory $inventory): bool
     {
-        return $user->can('view_other::loan');
+        return $user->can('view_inventory');
     }
 
     /**
@@ -31,23 +31,23 @@ class LoanPolicy
      */
     public function create(User $user): bool
     {
-        return $user->can('create_other::loan');
+        return $user->can('create_inventory');
     }
 
     /**
      * Determine whether the user can update the model.
      */
-    public function update(User $user, Loan $loan): bool
+    public function update(User $user, Inventory $inventory): bool
     {
-        return $user->can('update_other::loan');
+        return $user->can('update_inventory');
     }
 
     /**
      * Determine whether the user can delete the model.
      */
-    public function delete(User $user, Loan $loan): bool
+    public function delete(User $user, Inventory $inventory): bool
     {
-        return $user->can('delete_other::loan');
+        return $user->can('delete_inventory');
     }
 
     /**
@@ -55,15 +55,15 @@ class LoanPolicy
      */
     public function deleteAny(User $user): bool
     {
-        return $user->can('delete_any_other::loan');
+        return $user->can('delete_any_inventory');
     }
 
     /**
      * Determine whether the user can permanently delete.
      */
-    public function forceDelete(User $user, Loan $loan): bool
+    public function forceDelete(User $user, Inventory $inventory): bool
     {
-        return $user->can('force_delete_other::loan');
+        return $user->can('force_delete_inventory');
     }
 
     /**
@@ -71,15 +71,15 @@ class LoanPolicy
      */
     public function forceDeleteAny(User $user): bool
     {
-        return $user->can('force_delete_any_other::loan');
+        return $user->can('force_delete_any_inventory');
     }
 
     /**
      * Determine whether the user can restore.
      */
-    public function restore(User $user, Loan $loan): bool
+    public function restore(User $user, Inventory $inventory): bool
     {
-        return $user->can('restore_other::loan');
+        return $user->can('restore_inventory');
     }
 
     /**
@@ -87,15 +87,15 @@ class LoanPolicy
      */
     public function restoreAny(User $user): bool
     {
-        return $user->can('restore_any_other::loan');
+        return $user->can('restore_any_inventory');
     }
 
     /**
      * Determine whether the user can replicate.
      */
-    public function replicate(User $user, Loan $loan): bool
+    public function replicate(User $user, Inventory $inventory): bool
     {
-        return $user->can('replicate_other::loan');
+        return $user->can('replicate_inventory');
     }
 
     /**
@@ -103,6 +103,6 @@ class LoanPolicy
      */
     public function reorder(User $user): bool
     {
-        return $user->can('reorder_other::loan');
+        return $user->can('reorder_inventory');
     }
 }

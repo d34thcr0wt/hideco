@@ -1,19 +1,18 @@
 <?php
 
-namespace App\Filament\Resources\LoanAgreementFormsResource\Pages;
+namespace App\Filament\Resources\InventoryResource\Pages;
 
-use App\Filament\Resources\LoanAgreementFormsResource;
+use App\Filament\Resources\InventoryResource;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
 
-class EditLoanAgreementForms extends EditRecord
+class EditInventory extends EditRecord
 {
-    protected static string $resource = LoanAgreementFormsResource::class;
+    protected static string $resource = InventoryResource::class;
 
     protected function getHeaderActions(): array
     {
         return [
-            Actions\ViewAction::make(),
             Actions\DeleteAction::make(),
         ];
     }
@@ -22,4 +21,4 @@ class EditLoanAgreementForms extends EditRecord
     {
         return $this->getResource()::getUrl('index');
     }
-}
+} 

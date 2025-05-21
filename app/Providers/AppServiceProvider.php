@@ -23,11 +23,12 @@ class AppServiceProvider extends ServiceProvider
         Model::unguard();
         Filament::registerNavigationGroups([
             'Customers',
-            'Loan Agreement Forms',
-            'Wallets',
+            'Inventories',
             'Loans',            
-            'Expenses',
             'Repayments',
+            'Expenses',
+            'Wallets',
+            'Loan Agreement Forms',
             'Addons',
         ]);
     }
