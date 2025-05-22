@@ -34,7 +34,7 @@
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
 
 <!-- Favicon -->
-<link rel="icon" href="{{ asset('favicon.ico') }}" type="image/x-icon">
+<link rel="icon" href="/favicon.ico" type="image/x-icon">
 <!-- <link href="{{asset('landing_page/img/apple-touch-icon.png')}}" rel="shortcut icon"/> -->
 
 <!-- Scripts -->
