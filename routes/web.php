@@ -28,12 +28,4 @@ Route::middleware([
     })->name('dashboard');
 
     Route::resource('borrower',BorrowersController::class);
-
-    // Admin routes group
-    Route::prefix('admin')->group(function () {
-        Route::get('/loans', function () {
-            // TODO: Implement logic for the admin loans page
-            return view('admin.loans'); // Make sure you have a view file at resources/views/admin/loans.blade.php
-        })->name('admin.loans'); // Naming the route is optional but good practice
-    });
 });
